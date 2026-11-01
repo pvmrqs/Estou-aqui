@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Para o Meu Amor - Um Espaço de Paz</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Cormorant Garamond (Serif) & Plus Jakarta Sans (Sans) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Tone.js for gentle ambient chime (optional & synthesized) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        serif: ['"Cormorant Garamond"', 'serif'],
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        night: {
+                            900: '#0f1021',
+                            800: '#181a33',
+                            700: '#252849',
+                        },
+                        warm: {
+                            100: '#fdfbf7',
+                            200: '#f7efe5',
+                            300: '#ebd8c8',
+                            rose: '#e8b4b8',
+                            lavender: '#c3b1e1',
+                            gold: '#f3d5b5'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background: radial-gradient(circle at 50% 20%, #252849 0%, #16182e 50%, #0d0e1c 100%);
+            color: #fdfbf7;
+            overflow-x: hidden;
+            min-height: 100vh;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Subtle floating stars/particles canvas */
+        #starCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Glassmorphism card style */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), 0 0 40px rgba(232, 180, 184, 0.06);
+        }
+
+        /* Gentle pulse for buttons and breathing orb */
+        @keyframes softPulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 25px rgba(232, 180, 184, 0.35), 0 0 50px rgba(232, 180, 184, 0.15);
+            }
+            50% {
+                transform: scale(1.04);
+                box-shadow: 0 0 35px rgba(232, 180, 184, 0.55), 0 0 70px rgba(232, 180, 184, 0.25);
+            }
+        }
+
+        .btn-glow {
+            animation: softPulse 3.5s infinite ease-in-out;
+        }
+
+        /* Breathing Guide Circle */
+        @keyframes breatheCircle {
+            0%, 100% {
+                transform: scale(0.85);
+                opacity: 0.45;
+            }
+            50% {
+                transform: scale(1.25);
+                opacity: 0.85;
+            }
+        }
+
+        .breathe-orb {
+            animation: breatheCircle 7s infinite ease-in-out;
+        }
+
+        /* Smooth Screen Transitions */
+        .fade-transition {
+            transition: opacity 0.65s cubic-bezier(0.4, 0, 0.2, 1), transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .screen-hidden {
+            opacity: 0;
+            transform: translateY(14px) scale(0.98);
+            pointer-events: none;
+            position: absolute;
+        }
+
+        .screen-visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+            position: relative;
+        }
+
+        /* Floating Hearts Animation for Hug Button */
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0) scale(0.6) rotate(0deg);
+                opacity: 0;
+            }
+            20% {
+                opacity: 0.9;
+            }
+            100% {
+                transform: translateY(-100vh) scale(1.25) rotate(15deg);
+                opacity: 0;
+            }
+        }
+
+        .floating-heart {
+            position: fixed;
+            bottom: -40px;
+            pointer-events: none;
+            z-index: 50;
+            animation: floatUp 4.5s ease-out forwards;
+        }
+
+        /* Warm Aura Overlay when receiving a hug */
+        #hugAura {
+            background: radial-gradient(circle at center, rgba(232, 180, 184, 0.28) 0%, rgba(243, 213, 181, 0.12) 45%, transparent 75%);
+            transition: opacity 1.2s ease-in-out;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased flex flex-col justify-between min-h-screen relative selection:bg-warm-rose selection:text-night-900">
+
+    <!-- Background Starfield Canvas -->
+    <canvas id="starCanvas"></canvas>
+
+    <!-- Warm Hug Aura Overlay -->
+    <div id="hugAura" class="fixed inset-0 pointer-events-none opacity-0 z-10"></div>
+
+    <!-- Top Bar: Subtle Audio Toggle & Ambient Indicator -->
+    <header class="w-full max-w-lg mx-auto px-6 pt-6 pb-2 flex justify-between items-center z-20">
+        <div class="flex items-center space-x-2 opacity-75">
+            <span class="w-2 h-2 rounded-full bg-warm-rose animate-ping"></span>
+            <span class="text-xs tracking-widest uppercase text-warm-200/80 font-light">Com amor, para você</span>
+        </div>
+
+        <button id="soundToggle" onclick="toggleAmbientSound()" aria-label="Alternar som suave"
+            class="flex items-center space-x-1.5 text-xs text-warm-200/75 hover:text-warm-100 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full px-3.5 py-1.5 transition-all duration-300">
+            <svg id="soundIconOff" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+            </svg>
+            <svg id="soundIconOn" class="w-3.5 h-3.5 hidden text-warm-rose" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+            </svg>
+            <span id="soundText">Melodia suave</span>
+        </button>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow flex items-center justify-center px-5 py-6 z-20 w-full max-w-lg mx-auto relative">
+
+        <!-- ================= SCREEN 0: INITIAL WELCOME ================= -->
+        <section id="welcomeScreen" class="glass-card rounded-3xl p-8 sm:p-10 w-full text-center fade-transition screen-visible">
+            <!-- Decorative Moon / Stars Icon -->
+            <div class="relative w-20 h-20 mx-auto mb-7 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full bg-warm-rose/20 blur-xl breathe-orb"></div>
+                <div class="relative w-16 h-16 rounded-full bg-gradient-to-tr from-warm-rose/25 to-warm-lavender/25 border border-white/15 flex items-center justify-center shadow-inner">
+                    <svg class="w-8 h-8 text-warm-gold" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Main Requested Opening Message -->
+            <h1 class="font-serif text-3xl sm:text-4xl font-medium text-warm-100 leading-relaxed mb-4">
+                Boa noite, meu amor!
+            </h1>
+            <p class="text-warm-200/90 text-base sm:text-lg font-light leading-relaxed mb-9 px-2">
+                Clique aqui e espero que se sinta acolhida
+            </p>
+
+            <!-- "Iniciar" Button -->
+            <button onclick="startJourney()"
+                class="btn-glow w-full sm:w-auto min-w-[200px] bg-gradient-to-r from-warm-rose via-[#efb9cb] to-warm-gold text-night-900 font-medium text-base tracking-wide py-4 px-10 rounded-full shadow-lg hover:brightness-105 active:scale-95 transition-all duration-300">
+                Iniciar
+            </button>
+
+            <p class="text-xs text-warm-200/50 mt-6 font-light">
+                Respire fundo e vá no seu tempo ✨
+            </p>
+        </section>
+
+        <!-- ================= SCREEN 1: INTERACTIVE SLIDES ================= -->
+        <section id="slidesScreen" class="glass-card rounded-3xl p-7 sm:p-10 w-full fade-transition screen-hidden">
+            
+            <!-- Progress Dots -->
+            <div class="flex justify-center items-center space-x-2.5 mb-7" id="progressDots">
+                <!-- Populated dynamically by JS -->
+            </div>
+
+            <!-- Slide Content Wrapper -->
+            <div id="slideContent" class="fade-transition min-h-[290px] sm:min-h-[270px] flex flex-col justify-center items-center text-center px-1">
+                
+                <!-- Dynamic Icon Container -->
+                <div id="slideIcon" class="mb-5"></div>
+
+                <!-- Slide Subtitle/Tag -->
+                <span id="slideTag" class="text-xs uppercase tracking-widest text-warm-rose/90 font-medium mb-2 block"></span>
+
+                <!-- Slide Title -->
+                <h2 id="slideTitle" class="font-serif text-2xl sm:text-3xl text-warm-100 font-semibold mb-4 leading-snug"></h2>
+
+                <!-- Slide Paragraph -->
+                <p id="slideText" class="text-warm-200/90 text-base sm:text-[17px] font-light leading-relaxed"></p>
+
+                <!-- Extra Interactive Element (e.g., Breathing Prompt or Hug Button on Final Slide) -->
+                <div id="slideExtra" class="mt-6 w-full"></div>
+            </div>
+
+            <!-- Navigation Footer -->
+            <div class="mt-8 pt-5 border-t border-white/10 flex items-center justify-between">
+                <button id="prevBtn" onclick="changeSlide(-1)"
+                    class="flex items-center space-x-1.5 text-sm text-warm-200/70 hover:text-warm-100 py-2.5 px-4 rounded-full hover:bg-white/5 transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    <span>Anterior</span>
+                </button>
+
+                <span id="slideCounter" class="text-xs text-warm-200/40 font-light">1 / 4</span>
+
+                <button id="nextBtn" onclick="changeSlide(1)"
+                    class="flex items-center space-x-2 bg-white/10 hover:bg-white/20 text-warm-100 border border-white/15 text-sm font-medium py-2.5 px-6 rounded-full shadow-sm active:scale-95 transition-all">
+                    <span id="nextBtnText">Próximo</span>
+                    <svg id="nextBtnIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- ================= SCREEN 2: FULL LETTER VIEW (ALL MESSAGES) ================= -->
+        <section id="fullLetterScreen" class="glass-card rounded-3xl p-7 sm:p-9 w-full fade-transition screen-hidden my-4">
+            <div class="text-center mb-6">
+                <span class="text-xs uppercase tracking-widest text-warm-rose font-medium">Carta Completa</span>
+                <h2 class="font-serif text-3xl text-warm-100 mt-1">Para você guardar no coração</h2>
+            </div>
+
+            <div class="space-y-5 text-warm-200/90 text-sm sm:text-base font-light leading-relaxed border-y border-white/10 py-6 max-h-[55vh] overflow-y-auto pr-2">
+                <p>
+                    <strong class="text-warm-100 font-medium">Meu amor,</strong> criei este cantinho para que você possa fazer uma pausa, soltar o ar devagar e sentir o meu abraço te envolvendo depois de uma madrugada tão tensa.
+                </p>
+                <p>
+                    Quero que você saiba o quanto eu te admiro. <strong class="text-warm-gold font-medium">Você é uma mulher incrivelmente forte.</strong> A rapidez, a coragem e o cuidado que você teve ao socorrer o seu avô hoje de madrugada mostram a grandeza do seu coração e o quanto você foi essencial para ele. Tenho um orgulho imenso de quem você é.
+                </p>
+                <p>
+                    Sei que hoje não conseguimos nos ver, mas quero te tranquilizar: <strong class="text-warm-rose font-medium">está tudo bem, no seu tempo.</strong> Hoje o seu lugar era exatamente onde você estava, cuidando de quem você ama. E mesmo de longe, o meu pensamento e o meu coração estiveram aí com você em cada segundo.
+                </p>
+                <p>
+                    Não se preocupe com nada sobre nós hoje. Semana que vem teremos toda a calma do mundo para contemplar o nosso momento a sós, conversar, descansar no colo um do outro e celebrar a recuperação dele.
+                </p>
+                <p class="font-serif italic text-lg text-warm-100 text-center pt-2">
+                    "Agora, descansa o seu coração. Estou aqui para tudo o que você precisar. Eu te amo muito!"
+                </p>
+            </div>
+
+            <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                <button onclick="triggerVirtualHug()"
+                    class="flex-1 bg-gradient-to-r from-warm-rose to-warm-gold text-night-900 font-medium text-sm py-3.5 px-6 rounded-full shadow-md hover:brightness-105 active:scale-95 transition-all flex items-center justify-center space-x-2">
+                    <span>🤍</span>
+                    <span>Receber mais um abraço</span>
+                </button>
+                <button onclick="restartJourney()"
+                    class="text-xs text-warm-200/70 hover:text-warm-100 py-3 px-5 rounded-full border border-white/10 hover:bg-white/5 transition-all">
+                    Voltar ao início
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Hug Toast Notification (Replaces any alert) -->
+    <div id="hugToast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-all duration-500 transform translate-y-4 w-11/12 max-w-sm">
+        <div class="bg-night-800/95 border border-warm-rose/40 text-warm-100 px-5 py-3.5 rounded-2xl shadow-2xl flex items-center space-x-3 backdrop-blur-md">
+            <span class="text-2xl">🫂</span>
+            <div class="text-left">
+                <p class="text-xs font-semibold text-warm-rose uppercase tracking-wider">Abraço Apertado Enviado</p>
+                <p class="text-xs text-warm-200/90 mt-0.5">Feche os olhos por 3 segundos e sinta meu carinho daí.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="w-full text-center py-4 text-xs text-warm-200/40 font-light z-20">
+        Feito com todo o meu carinho para acalmar o seu coração 🤍
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        /* ==========================================================================
+           1. SLIDES DATA (Heartfelt messages tailored to the user's request)
+           ========================================================================== */
+        const slides = [
+            {
+                tag: "Respire Fundo",
+                title: "Um porto seguro para você",
+                text: "Depois de uma madrugada tão intensa e assustadora, fiz este pequeno espaço só para você desacelerar. Solte os ombros, respire bem fundo e sinta-se abraçada por mim agora.",
+                icon: `
+                    <div class="relative w-16 h-16 mx-auto flex items-center justify-center">
+                        <div class="absolute inset-0 rounded-full bg-warm-lavender/30 breathe-orb"></div>
+                        <div class="relative w-12 h-12 rounded-full bg-warm-lavender/20 border border-warm-lavender/40 flex items-center justify-center text-warm-100">
+                            <svg class="w-6 h-6 text-warm-lavender" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                `,
+                extra: `
+                    <div class="inline-flex items-center space-x-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-xs text-warm-200/75">
+                        <span class="w-2 h-2 rounded-full bg-warm-lavender animate-pulse"></span>
+                        <span>Inspire calma... expire o cansaço</span>
+                    </div>
+                `
+            },
+            {
+                tag: "Minha Admiração",
+                title: "A mulher forte que você é",
+                text: "Eu tenho um orgulho imenso da sua força. A rapidez, a coragem e o amor com que você agiu para socorrer o seu avô hoje de madrugada foram fundamentais. Você foi incrível, firme e um verdadeiro anjo na vida dele.",
+                icon: `
+                    <div class="relative w-16 h-16 mx-auto flex items-center justify-center">
+                        <div class="absolute inset-0 rounded-full bg-warm-gold/25 blur-md"></div>
+                        <div class="relative w-12 h-12 rounded-full bg-warm-gold/20 border border-warm-gold/40 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-warm-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                            </svg>
+                        </div>
+                    </div>
+                `,
+                extra: `
+                    <p class="font-serif italic text-warm-gold/90 text-base">
+                        "Mesmo quando o coração aperta, a sua coragem ilumina quem está ao seu redor."
+                    </p>
+                `
+            },
+            {
+                tag: "Presença e Compreensão",
+                title: "Está tudo no seu tempo",
+                text: "Hoje nós não conseguimos nos ver, mas quero que seu coração fique em total paz: está tudo bem! O seu lugar hoje era ao lado da sua família, e o meu pensamento esteve aí com você em cada segundo.",
+                icon: `
+                    <div class="relative w-16 h-16 mx-auto flex items-center justify-center">
+                        <div class="absolute inset-0 rounded-full bg-warm-rose/25 blur-md"></div>
+                        <div class="relative w-12 h-12 rounded-full bg-warm-rose/20 border border-warm-rose/40 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-warm-rose" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                `,
+                extra: `
+                    <div class="inline-flex items-center space-x-2 text-xs text-warm-rose/90 bg-warm-rose/10 border border-warm-rose/20 px-4 py-1.5 rounded-full">
+                        <span>🤍 Sem pressa, estou sempre com você</span>
+                    </div>
+                `
+            },
+            {
+                tag: "Nosso Momento",
+                title: "Logo estaremos juntos",
+                text: "Semana que vem nós vamos contemplar o nosso momento a sós, com toda a calma, carinho e paz que você merece. Agora, descansa a sua mente e o seu coração. Eu te amo demais e estou aqui para tudo!",
+                icon: `
+                    <div class="relative w-16 h-16 mx-auto flex items-center justify-center">
+                        <div class="absolute inset-0 rounded-full bg-warm-rose/30 breathe-orb"></div>
+                        <div class="relative w-12 h-12 rounded-full bg-gradient-to-br from-warm-rose/30 to-warm-gold/30 border border-white/25 flex items-center justify-center">
+                            <span class="text-xl">✨</span>
+                        </div>
+                    </div>
+                `,
+                extra: `
+                    <div class="pt-2 flex flex-col items-center space-y-3">
+                        <button onclick="triggerVirtualHug()"
+                            class="btn-glow w-full sm:w-auto bg-gradient-to-r from-warm-rose via-[#efb9cb] to-warm-gold text-night-900 font-medium text-sm py-3.5 px-7 rounded-full shadow-lg hover:brightness-105 active:scale-95 transition-all flex items-center justify-center space-x-2">
+                            <span>🫂</span>
+                            <span>Receber um abraço apertado</span>
+                        </button>
+                        <button onclick="showFullLetter()"
+                            class="text-xs text-warm-200/70 underline underline-offset-4 hover:text-warm-100 transition-colors pt-1">
+                            Ler toda a mensagem junta
+                        </button>
+                    </div>
+                `
+            }
+        ];
+
+        let currentSlide = 0;
+
+        /* ==========================================================================
+           2. NAVIGATION & SLIDE RENDERING
+           ========================================================================== */
+        function startJourney() {
+            playSoftChime(523.25); // C5 gentle note if audio enabled
+            switchScreen('welcomeScreen', 'slidesScreen');
+            currentSlide = 0;
+            renderSlide();
+        }
+
+        function switchScreen(hideId, showId) {
+            const hideEl = document.getElementById(hideId);
+            const showEl = document.getElementById(showId);
+
+            hideEl.classList.remove('screen-visible');
+            hideEl.classList.add('screen-hidden');
+
+            setTimeout(() => {
+                showEl.classList.remove('screen-hidden');
+                showEl.classList.add('screen-visible');
+            }, 300);
+        }
+
+        function renderSlide() {
+            const slideContent = document.getElementById('slideContent');
+            const slide = slides[currentSlide];
+
+            // Smooth fade-out before updating content
+            slideContent.style.opacity = '0';
+            slideContent.style.transform = 'translateY(8px)';
+
+            setTimeout(() => {
+                document.getElementById('slideIcon').innerHTML = slide.icon;
+                document.getElementById('slideTag').textContent = slide.tag;
+                document.getElementById('slideTitle').textContent = slide.title;
+                document.getElementById('slideText').textContent = slide.text;
+                document.getElementById('slideExtra').innerHTML = slide.extra || '';
+                document.getElementById('slideCounter').textContent = `${currentSlide + 1} / ${slides.length}`;
+
+                // Update Progress Dots
+                const dotsContainer = document.getElementById('progressDots');
+                dotsContainer.innerHTML = '';
+                slides.forEach((_, idx) => {
+                    const dot = document.createElement('button');
+                    dot.setAttribute('aria-label', `Ir para mensagem ${idx + 1}`);
+                    dot.onclick = () => jumpToSlide(idx);
+                    if (idx === currentSlide) {
+                        dot.className = 'w-7 h-2 rounded-full bg-warm-rose transition-all duration-300';
+                    } else if (idx < currentSlide) {
+                        dot.className = 'w-2 h-2 rounded-full bg-warm-rose/50 hover:bg-warm-rose/75 transition-all duration-300';
+                    } else {
+                        dot.className = 'w-2 h-2 rounded-full bg-white/20 hover:bg-white/40 transition-all duration-300';
+                    }
+                    dotsContainer.appendChild(dot);
+                });
+
+                // Update Prev/Next Buttons
+                const prevBtn = document.getElementById('prevBtn');
+                const nextBtn = document.getElementById('nextBtn');
+                const nextBtnText = document.getElementById('nextBtnText');
+
+                if (currentSlide === 0) {
+                    prevBtn.classList.add('opacity-40');
+                } else {
+                    prevBtn.classList.remove('opacity-40');
+                }
+
+                if (currentSlide === slides.length - 1) {
+                    nextBtnText.textContent = 'Ver Carta';
+                } else {
+                    nextBtnText.textContent = 'Próximo';
+                }
+
+                // Fade back in
+                slideContent.style.opacity = '1';
+                slideContent.style.transform = 'translateY(0)';
+            }, 220);
+        }
+
+        function changeSlide(direction) {
+            if (direction === -1 && currentSlide === 0) {
+                switchScreen('slidesScreen', 'welcomeScreen');
+                return;
+            }
+
+            if (direction === 1 && currentSlide === slides.length - 1) {
+                showFullLetter();
+                return;
+            }
+
+            currentSlide += direction;
+            const notes = [523.25, 587.33, 659.25, 783.99]; // C5, D5, E5, G5
+            playSoftChime(notes[currentSlide % notes.length]);
+            renderSlide();
+        }
+
+        function jumpToSlide(index) {
+            if (index === currentSlide) return;
+            currentSlide = index;
+            renderSlide();
+        }
+
+        function showFullLetter() {
+            playSoftChime(659.25);
+            switchScreen('slidesScreen', 'fullLetterScreen');
+        }
+
+        function restartJourney() {
+            switchScreen('fullLetterScreen', 'welcomeScreen');
+        }
+
+        /* ==========================================================================
+           3. TOUCH SWIPE SUPPORT FOR MOBILE
+           ========================================================================== */
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        const slidesSection = document.getElementById('slidesScreen');
+        slidesSection.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        slidesSection.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+
+        function handleSwipe() {
+            const threshold = 50;
+            if (touchEndX < touchStartX - threshold) {
+                changeSlide(1); // Swipe Left -> Next
+            } else if (touchEndX > touchStartX + threshold) {
+                changeSlide(-1); // Swipe Right -> Previous
+            }
+        }
+
+        /* ==========================================================================
+           4. VIRTUAL HUG INTERACTION (Floating Hearts & Warm Glow)
+           ========================================================================== */
+        let toastTimeout;
+
+        function triggerVirtualHug() {
+            playWarmChord();
+
+            // 1. Show Warm Aura
+            const aura = document.getElementById('hugAura');
+            aura.style.opacity = '1';
+            setTimeout(() => {
+                aura.style.opacity = '0';
+            }, 3000);
+
+            // 2. Spawn Floating Hearts & Stars
+            const symbols = ['🤍', '✨', '💖', '🌸', '🫂'];
+            for (let i = 0; i < 18; i++) {
+                setTimeout(() => {
+                    const el = document.createElement('div');
+                    el.className = 'floating-heart';
+                    el.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+                    el.style.left = `${10 + Math.random() * 80}vw`;
+                    el.style.fontSize = `${16 + Math.random() * 18}px`;
+                    el.style.animationDuration = `${3.2 + Math.random() * 2.3}s`;
+                    document.body.appendChild(el);
+
+                    setTimeout(() => el.remove(), 5500);
+                }, i * 110);
+            }
+
+            // 3. Show Reassuring Toast Message
+            const toast = document.getElementById('hugToast');
+            toast.classList.remove('opacity-0', 'translate-y-4');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'translate-y-4');
+            }, 4500);
+        }
+
+        /* ==========================================================================
+           5. GENTLE SYNTHESIZED AMBIENT SOUND (Tone.js)
+           ========================================================================== */
+        let isSoundOn = false;
+        let synth = null;
+        let ambientLoop = null;
+
+        async function toggleAmbientSound() {
+            try {
+                await Tone.start();
+                if (!synth) {
+                    synth = new Tone.PolySynth(Tone.Synth, {
+                        oscillator: { type: "sine" },
+                        envelope: {
+                            attack: 1.5,
+                            decay: 1.2,
+                            sustain: 0.4,
+                            release: 3.5
+                        }
+                    }).toDestination();
+                    synth.volume.value = -18; // Very soft and soothing
+                }
+
+                isSoundOn = !isSoundOn;
+                const iconOff = document.getElementById('soundIconOff');
+                const iconOn = document.getElementById('soundIconOn');
+                const soundText = document.getElementById('soundText');
+
+                if (isSoundOn) {
+                    iconOff.classList.add('hidden');
+                    iconOn.classList.remove('hidden');
+                    soundText.textContent = 'Som ativo';
+
+                    // Play a gentle, comforting chord progression loop
+                    const chords = [
+                        ["C4", "E4", "G4", "B4"],
+                        ["A3", "C4", "E4", "G4"],
+                        ["F3", "A3", "C4", "E4"],
+                        ["G3", "B3", "D4", "F#4"]
+                    ];
+                    let chordIndex = 0;
+
+                    synth.triggerAttackRelease(chords[0], "3n");
+                    ambientLoop = setInterval(() => {
+                        if (isSoundOn && synth) {
+                            chordIndex = (chordIndex + 1) % chords.length;
+                            synth.triggerAttackRelease(chords[chordIndex], "3n");
+                        }
+                    }, 4800);
+                } else {
+                    iconOff.classList.remove('hidden');
+                    iconOn.classList.add('hidden');
+                    soundText.textContent = 'Melodia suave';
+                    if (ambientLoop) clearInterval(ambientLoop);
+                }
+            } catch (e) {
+                console.warn("Audio could not be initialized:", e);
+            }
+        }
+
+        function playSoftChime(freq) {
+            if (!isSoundOn || !synth) return;
+            try {
+                synth.triggerAttackRelease(freq, "8n");
+            } catch (e) {}
+        }
+
+        function playWarmChord() {
+            if (!isSoundOn || !synth) return;
+            try {
+                synth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "2n");
+            } catch (e) {}
+        }
+
+        /* ==========================================================================
+           6. STARFIELD BACKGROUND ANIMATION (Canvas)
+           ========================================================================== */
+        const canvas = document.getElementById('starCanvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initStars();
+        }
+
+        function initStars() {
+            stars = [];
+            const numStars = Math.floor((canvas.width * canvas.height) / 11000);
+            for (let i = 0; i < numStars; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 1.6 + 0.4,
+                    alpha: Math.random() * 0.7 + 0.1,
+                    speedY: -(Math.random() * 0.15 + 0.04),
+                    twinkleSpeed: Math.random() * 0.012 + 0.004
+                });
+            }
+        }
+
+        function animateStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            stars.forEach(star => {
+                star.y += star.speedY;
+                star.alpha += star.twinkleSpeed;
+
+                if (star.alpha > 0.85 || star.alpha < 0.15) {
+                    star.twinkleSpeed = -star.twinkleSpeed;
+                }
+
+                if (star.y < 0) {
+                    star.y = canvas.height;
+                    star.x = Math.random() * canvas.width;
+                }
+
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(247, 239, 229, ${star.alpha})`;
+                ctx.fill();
+            });
+
+            requestAnimationFrame(animateStars);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        window.onload = function () {
+            resizeCanvas();
+            animateStars();
+        };
+    </script>
+</body>
+</html>
